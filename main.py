@@ -80,9 +80,24 @@ async def calculate_routing(graph: GraphData):
 async def health():
     return {"status": "operational"}
 
+from fastapi.responses import FileResponse
+
 # Serve static files from React build
-if os.path.exists("frontend/dist"):
-    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    dist_dir = "frontend/dist"
+    file_path = os.path.join(dist_dir, full_path)
+    
+    # If the user is requesting an actual file (like .js, .css, .png)
+    if full_path != "" and os.path.exists(file_path):
+        return FileResponse(file_path)
+        
+    # Otherwise fallback to index.html for React routing
+    index_file = os.path.join(dist_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    
+    return {"message": "Frontend build not found. Please run 'npm run build' inside the frontend directory."}
 
 if __name__ == "__main__":
     import uvicorn
